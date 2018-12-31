@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+# filename: sse_com_cn_company_info_selenium.py
 
 import json
 import random
@@ -35,9 +36,9 @@ class CompanyInfoFetcher():
             # 等待页面表格数据元素加载出来
             self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[1]/td[2]/div[1]/div[1]')))
-            self.parse_page()
+            self.parse_page(stock_code)
 
-    def parse_page(self):
+    def parse_page(self, stock_code):
         '''
         在浏览器中执行以下js代码可以获得 metas 数组
         [].slice.call(document.querySelectorAll('body.easyui-layout.layout:nth-child(2) div.panel.layout-panel.layout-panel-center:nth-child(8) div.panel-body.panel-body-noheader.panel-body-noborder.layout-body.panel-noscroll div.panel.datagrid.propertygrid:nth-child(1) div.datagrid-wrap.panel-body.panel-body-noheader div.datagrid-view div.datagrid-view2:nth-child(3) div.datagrid-body table.datagrid-btable tbody:nth-child(1) tr.datagrid-row td:nth-child(1) > div.datagrid-cell.datagrid-cell-c6-name')).map(item => item.innerText)
@@ -50,7 +51,7 @@ class CompanyInfoFetcher():
         metas = ["公司法定中文名称", "公司法定代表人", "公司注册地址", "公司办公地址邮政编码", "公司国际互联网网址", "公司董事会秘书姓名", "公司董事会秘书电话", "公司董事会秘书电子信箱", "报告期末股东总数", "每10股送红股数", "每10股派息数（含税）", "每10股转增数", "本期营业收入(元)", "本期营业利润(元)", "利润总额(元)", "归属于上市公司股东的净利润(元)", "归属于上市公司股东的扣除非经常性损益的净利润(元)", "经营活动产生的现金流量净额(元)", "总资产(元)", "所有者权益（或股东权益）(元)", "基本每股收益(元/股)", "稀释每股收益(元/股)", "扣除非经常性损益后的基本每股收益(元/股)", "全面摊薄净资产收益率（%）", "加权平均净资产收益率（%）", "扣除非经常性损益后全面摊薄净资产收益率（%）", "扣除非经常性损益后的加权平均净资产收益率（%）", "每股经营活动产生的现金流量净额(元/股)", "归属于上市公司股东的每股净资产（元/股）"]
         years = ["2017", "2016", "2015", "2014", "2013"]
 
-        table = PrettyTable(['指标/年份'] + years)
+        table = PrettyTable(['{0:s} 指标/年份'.format(stock_code)] + years)
 
         company = {}
         for i, meta in enumerate(metas):
@@ -68,7 +69,7 @@ class CompanyInfoFetcher():
 
     def get_stock_codes(self):
         try:
-            with open('/Users/apple/PycharmProjects/sse_com_cn_company_info/sse_com_cn_company_info/shangjiaoshuo_stock_codes.list.json', 'r') as f:
+            with open('shangjiaoshuo_stock_codes.list.json', 'r') as f:
                 stock_codes = json.loads(f.read())
                 # print(self.stock_codes)
             f.close()
