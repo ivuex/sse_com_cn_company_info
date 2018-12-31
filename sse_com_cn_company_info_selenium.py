@@ -2,6 +2,7 @@
 
 import json
 import random
+import pymongo
 # import asyncio
 
 from prettytable import PrettyTable
@@ -18,25 +19,25 @@ class CompanyInfoFetcher():
         self.timeout = timeout
         self.options = options
         self.browser = webdriver.Chrome(options=self.options)
+        # 设置超时对象
         self.wait = WebDriverWait(self.browser, self.timeout)
         header['user-agent'] = self.get_user_agent()
+        # 数据库初始化
+        client = pymongo.MongoClient('45.249.94.149')
+        db = client['shangjiaosuo_sse_com_cn']
+        self.collection = db['company_years_meta_info']
 
     def access_pages(self):
         print('45-45')
         stock_codes = self.get_stock_codes()
         for stock_code in stock_codes:
-        # if 1:
             self.browser.get('http://listxbrl.sse.com.cn/companyInfo/toCompanyInfo.do?stock_id={0:s}&report_period_id=5000'.format(stock_code))
+            # 等待页面表格数据元素加载出来
             self.wait.until(
                 EC.presence_of_element_located((By.XPATH, '/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[1]/td[2]/div[1]/div[1]')))
-            # asyncio.sleep(2)
             self.parse_page()
 
     def parse_page(self):
-        company = {}
-        grouper = self.make_grouper(company)
-        next(grouper)
-
         '''
         在浏览器中执行以下js代码可以获得 metas 数组
         [].slice.call(document.querySelectorAll('body.easyui-layout.layout:nth-child(2) div.panel.layout-panel.layout-panel-center:nth-child(8) div.panel-body.panel-body-noheader.panel-body-noborder.layout-body.panel-noscroll div.panel.datagrid.propertygrid:nth-child(1) div.datagrid-wrap.panel-body.panel-body-noheader div.datagrid-view div.datagrid-view2:nth-child(3) div.datagrid-body table.datagrid-btable tbody:nth-child(1) tr.datagrid-row td:nth-child(1) > div.datagrid-cell.datagrid-cell-c6-name')).map(item => item.innerText)
@@ -50,55 +51,20 @@ class CompanyInfoFetcher():
         years = ["2017", "2016", "2015", "2014", "2013"]
 
         table = PrettyTable(['指标/年份'] + years)
-        table.add_row()
 
+        company = {}
         for i, meta in enumerate(metas):
             row_num = int(i) + 1
             for j, year in enumerate(years):
                 col_num = int(j) + 1
-                grouper.send((meta, row_num, year, col_num))
-        grouper.send(None)
-        # print(company)
-
-
-    def make_grouper(self, company):
-        while True:
-            info = yield from self.generate()
-            if info is None:
-                break
-            meta, year, value = info
-            if not meta in company:
-                company[meta] = {}
-            company[meta][year] = value
-
-    def generate(self):
-        while True:
-            meta_info = yield
-            if not meta_info is None:
-                meta, row_num, year, col_num = meta_info
                 value = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[{0:d}]/td[{1:d}]/div[1]'.format(row_num, col_num)).text
-                return (meta, year, value)
-
-    # def get_registered_company_name(self):
-    #     registered_company_names = {}
-    #     registered_company_names['chs'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[1]/td[1]/div[1]').text
-    #     registered_company_names['2013'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[1]/td[6]/div[1]/div[1]').text
-    #     registered_company_names['2014'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[1]/td[5]/div[1]/div[1]').text
-    #     registered_company_names['2015'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[1]/td[4]/div[1]/div[1]').text
-    #     registered_company_names['2016'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[1]/td[3]/div[1]/div[1]').text
-    #     registered_company_names['2017'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[1]/td[2]/div[1]/div[1]').text
-    #     print(registered_company_names)
-    #     yield 2
-    #
-    # def get_legal_representative(self):
-    #     legal_representatives = {}
-    #     legal_representatives['chs'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[2]/td[1]/div[1]').text
-    #     legal_representatives['2013'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[2]/td[6]/div[1]/div[1]').text
-    #     legal_representatives['2014'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[2]/td[5]/div[1]/div[1]').text
-    #     legal_representatives['2015'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[2]/td[4]/div[1]/div[1]').text
-    #     legal_representatives['2016'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[2]/td[3]/div[1]/div[1]').text
-    #     legal_representatives['2017'] = self.browser.find_element_by_xpath('/html[1]/body[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[2]/div[2]/table[1]/tbody[1]/tr[2]/td[2]/div[1]/div[1]').text
-    #     print(legal_representatives)
+                if not meta in company:
+                    company[meta] = {}
+                company[meta][year] = value
+            table.add_row([meta] + list(company[meta].values()))
+        self.collection.insert_one(company)
+        print(table)
+        print('{0:<50}{1:10}{0:>50}'.format('*' * 30, '分割线'))
 
     def get_stock_codes(self):
         try:
@@ -109,6 +75,7 @@ class CompanyInfoFetcher():
             return  stock_codes
         except Exception:
             raise(Exception)
+
 
     def get_user_agent(self):
         return random.choice([
